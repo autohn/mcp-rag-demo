@@ -236,7 +236,9 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (s *Server) me(w http.ResponseWriter, r *http.Request) { writeJSON(w, http.StatusOK, userFrom(r.Context())) }
+func (s *Server) me(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, userFrom(r.Context()))
+}
 
 // ---- projects & members ----
 
@@ -676,4 +678,3 @@ func (s *statusWriter) Flush() {
 	}
 }
 func (s *statusWriter) Unwrap() http.ResponseWriter { return s.ResponseWriter }
-

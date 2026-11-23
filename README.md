@@ -4,23 +4,53 @@
 
 Documentation for construction sites. A project Admin uploads the project's documents; site foremen ask Questions and get Answers with exact Citations (document, page, verbatim passage). The same features are available to AI assistants over MCP.
 
+## Try it in 5 minutes
+
+You need [Docker Desktop](https://www.docker.com/products/docker-desktop/) and an [OpenAI API key](https://platform.openai.com/api-keys) (a few questions cost well under a cent).
+
+**1. Start it** — clone the repo and run one command with your key:
+
+```bash
+git clone https://github.com/autohn/mcp-rag-demo.git && cd mcp-rag-demo
+
+# macOS / Linux
+OPENAI_API_KEY=sk-... docker compose up --build
+
+# Windows PowerShell
+$env:OPENAI_API_KEY="sk-..."; docker compose up --build
+```
+
+The first build takes a couple of minutes. It's ready when the log shows `listening addr=:8080`.
+
+**2. Ask the CV** — open http://localhost:8080 and sign in as `prorab@demo.local` / `demo1234`. Open **CV — Mikhail Aleksanian** → **Questions** and ask, for example:
+
+- *What does he do at SIGNAX?*
+- *Has he built RAG systems? Where?*
+- *Which backend technologies does he know?*
+
+Every claim in the answer has a numbered citation. Click the document name under a citation: the PDF opens on that page with the quoted passage highlighted. Ask something the CV doesn't cover (*What is his salary expectation?*) and you get "not found" instead of a guess.
+
+**3. Try MCP (optional)** — go to **Access Tokens & MCP**, create a token, and copy the Claude Code / Cursor / Claude Desktop snippet shown there. Then ask your assistant: *"Using sitedocs, summarize Mikhail's AI experience with sources."*
+
+Also seeded: **Residential Building 2**, a construction project with Russian-language explanatory notes and specs, and an Admin account `admin@demo.local` / `demo1234` that can upload, delete and manage members.
+
+Stop with `Ctrl+C`; `docker compose down -v` also wipes the data. If port 8080 or 5433 is busy, stop whatever uses it or change the ports in `docker-compose.yml`. Without a key everything except Answers still works (full-text search only); add the key later and restart — existing documents get their embeddings automatically.
+
 ## Getting Started
 
-The whole stack in Docker (Postgres + backend serving the built frontend):
+Instead of passing the key on the command line you can keep it in `.env`:
 
 ```bash
 cp .env.example .env        # set OPENAI_API_KEY
 docker compose up --build   # http://localhost:8080
 ```
 
-The first start seeds a demo project, "Residential Building 2", with three sample documents (in Russian):
+Demo accounts:
 
 | User | Password | Role |
 |---|---|---|
-| `admin@demo.local` | `demo1234` | Admin |
-| `prorab@demo.local` | `demo1234` | Participant |
-
-Without `OPENAI_API_KEY` everything works except Answer generation: indexing and `search_project` fall back to full-text search only.
+| `admin@demo.local` | `demo1234` | Admin in both demo projects |
+| `prorab@demo.local` | `demo1234` | Participant in both demo projects |
 
 Development (Go 1.27+, Node 22+):
 

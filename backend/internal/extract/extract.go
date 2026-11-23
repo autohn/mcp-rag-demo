@@ -11,10 +11,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/ledongthuc/pdf"
@@ -110,16 +113,18 @@ func extractPDF(path string) (Result, error) {
 		if err != nil {
 			return Result{}, fmt.Errorf("page %d: %w", i, err)
 		}
-		sort.SliceStable(rows, func(a, b int) bool { return rows[a].Position > rows[b].Position })
-		var sb strings.Builder
+		var lines []string
 		for _, row := range rows {
-			line := joinRow(row.Content)
-			if strings.TrimSpace(line) != "" {
-				sb.WriteString(line)
-				sb.WriteByte('\n')
+			if line := joinRow(row.Content); strings.TrimSpace(line) != "" {
+				lines = append(lines, line)
 			}
 		}
-		res.Pages = append(res.Pages, Page{Number: i, Text: clean(sb.String())})
+		// GetTextByRow orders rows by text-space Y, ignoring the page matrix. PDFs with a
+		// flipped Y axis (Chromium/Skia) then come out bottom-up; detect and reverse.
+		if rowsUpsideDown(lines, p.Content().Text) {
+			slices.Reverse(lines)
+		}
+		res.Pages = append(res.Pages, Page{Number: i, Text: clean(strings.Join(lines, "\n"))})
 	}
 	return res, nil
 }
@@ -140,6 +145,55 @@ func joinRow(items pdf.TextHorizontal) string {
 		prevEnd = t.X + t.W
 	}
 	return sb.String()
+}
+
+func alnum(s string) string {
+	return strings.Map(func(r rune) rune {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) {
+			return unicode.ToLower(r)
+		}
+		return -1
+	}, s)
+}
+
+// rowsUpsideDown compares the row order with the true top-to-bottom glyph order from
+// Content(), which applies the full matrices: if rows appear in it mostly in reverse, flip.
+func rowsUpsideDown(lines []string, glyphs []pdf.Text) bool {
+	if len(lines) < 2 || len(glyphs) == 0 {
+		return false
+	}
+	glyphs = append([]pdf.Text(nil), glyphs...)
+	sort.SliceStable(glyphs, func(a, b int) bool {
+		if math.Abs(glyphs[a].Y-glyphs[b].Y) > max(glyphs[a].FontSize*0.4, 1) {
+			return glyphs[a].Y > glyphs[b].Y
+		}
+		return glyphs[a].X < glyphs[b].X
+	})
+	var sb strings.Builder
+	for _, g := range glyphs {
+		sb.WriteString(g.S)
+	}
+	truth := alnum(sb.String())
+	prev, up, down := -1, 0, 0
+	for _, l := range lines {
+		key := alnum(l)
+		if len([]rune(key)) < 6 {
+			continue
+		}
+		idx := strings.Index(truth, key)
+		if idx < 0 {
+			continue
+		}
+		if prev >= 0 {
+			if idx > prev {
+				down++
+			} else {
+				up++
+			}
+		}
+		prev = idx
+	}
+	return up > down
 }
 
 func extractDOCX(path string) (string, error) {

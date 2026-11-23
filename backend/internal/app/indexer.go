@@ -32,6 +32,9 @@ func (a *App) RunIndexer(ctx context.Context, workers int) {
 			a.Enqueue(id)
 		}
 	}
+	if a.LLM.Enabled() {
+		go a.backfillEmbeddings(ctx)
+	}
 	for range workers {
 		go func() {
 			for {
@@ -63,6 +66,51 @@ func (a *App) index(ctx context.Context, id int64) {
 }
 
 var errDocumentGone = errors.New("document deleted")
+
+// backfillEmbeddings embeds chunks indexed while no API key was configured, so that
+// adding OPENAI_API_KEY later enables vector search without re-uploading documents.
+func (a *App) backfillEmbeddings(ctx context.Context) {
+	total := 0
+	for {
+		rows, err := a.DB.Query(ctx, `SELECT id, text FROM chunks WHERE embedding IS NULL ORDER BY id LIMIT 96`)
+		if err != nil {
+			slog.Warn("embedding backfill", "err", err)
+			return
+		}
+		type row struct {
+			id   int64
+			text string
+		}
+		batch, err := pgx.CollectRows(rows, func(r pgx.CollectableRow) (row, error) {
+			var x row
+			return x, r.Scan(&x.id, &x.text)
+		})
+		if err != nil || len(batch) == 0 {
+			if total > 0 {
+				slog.Info("embedding backfill done", "chunks", total)
+			}
+			return
+		}
+		texts := make([]string, len(batch))
+		for i, x := range batch {
+			texts[i] = x.text
+		}
+		vecs, err := a.LLM.Embed(ctx, texts)
+		if err != nil {
+			slog.Warn("embedding backfill", "err", err)
+			return
+		}
+		b := &pgx.Batch{}
+		for i, x := range batch {
+			b.Queue(`UPDATE chunks SET embedding=$2 WHERE id=$1`, x.id, pgvector.NewVector(vecs[i]))
+		}
+		if err := a.DB.SendBatch(ctx, b).Close(); err != nil {
+			slog.Warn("embedding backfill", "err", err)
+			return
+		}
+		total += len(batch)
+	}
+}
 
 type pendingChunk struct {
 	page, ord int

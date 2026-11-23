@@ -123,7 +123,7 @@ export default function TokensPage() {
           <p className="text-sm text-muted-foreground">Settings → Developer → Edit Config, add to <code>claude_desktop_config.json</code> (requires Node.js):</p>
           <CodeBlock code={JSON.stringify({
             mcpServers: {
-              stroydoc: { command: 'npx', args: ['-y', 'mcp-remote', mcpUrl, '--header', `Authorization: Bearer ${tok}`] },
+              sitedocs: { command: 'npx', args: ['-y', 'mcp-remote', mcpUrl, '--header', `Authorization: Bearer ${tok}`] },
             },
           }, null, 2)} />
         </section>
@@ -131,12 +131,12 @@ export default function TokensPage() {
         <section className="space-y-2">
           <h3 className="text-sm font-semibold">Cursor</h3>
           <p className="text-sm text-muted-foreground">File <code>~/.cursor/mcp.json</code> (or <code>.cursor/mcp.json</code> in a project):</p>
-          <CodeBlock code={JSON.stringify({ mcpServers: { stroydoc: { url: mcpUrl, headers: { Authorization: `Bearer ${tok}` } } } }, null, 2)} />
+          <CodeBlock code={JSON.stringify({ mcpServers: { sitedocs: { url: mcpUrl, headers: { Authorization: `Bearer ${tok}` } } } }, null, 2)} />
         </section>
 
         <section className="space-y-2">
           <h3 className="text-sm font-semibold">Claude Code</h3>
-          <CodeBlock code={`claude mcp add --transport http stroydoc ${mcpUrl} --header "Authorization: Bearer ${tok}"`} />
+          <CodeBlock code={`claude mcp add --transport http sitedocs ${mcpUrl} --header "Authorization: Bearer ${tok}"`} />
         </section>
 
         <section className="space-y-2">
