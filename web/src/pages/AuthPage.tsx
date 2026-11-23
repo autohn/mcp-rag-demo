@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { useQueryClient } from '@tanstack/react-query'
-import { Building2 } from 'lucide-react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Building2, Sparkles } from 'lucide-react'
 import { api } from '@/lib/api'
 import { Button, Card, ErrorText, Input, Label } from '@/components/ui'
 
@@ -15,6 +15,22 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   const nav = useNavigate()
   const from = (useLocation().state as { from?: string } | null)?.from ?? '/'
   const isLogin = mode === 'login'
+  const config = useQuery({ queryKey: ['config'], queryFn: api.config, staleTime: Infinity })
+  const [demoBusy, setDemoBusy] = useState(false)
+
+  const openDemo = async () => {
+    setDemoBusy(true)
+    setError(null)
+    try {
+      const { user, project_id } = await api.demo()
+      qc.setQueryData(['me'], user)
+      nav(`/projects/${project_id}/questions`, { replace: true })
+    } catch (err) {
+      setError(err)
+    } finally {
+      setDemoBusy(false)
+    }
+  }
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -39,6 +55,16 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
           <h1 className="text-xl font-semibold">SiteDocs</h1>
           <p className="text-sm text-muted-foreground">Construction site documentation with cited answers</p>
         </div>
+        {config.data?.demo && (
+          <Card className="mb-4 border-primary/30 bg-accent p-5 text-center">
+            <Button className="w-full" size="default" loading={demoBusy} onClick={openDemo}>
+              <Sparkles />Open the demo project
+            </Button>
+            <p className="mt-2 text-xs text-muted-foreground">
+              No sign-up: ask questions about a sample CV and see the cited answers.
+            </p>
+          </Card>
+        )}
         <Card className="p-6">
           <h2 className="mb-4 text-base font-semibold">{isLogin ? 'Sign in' : 'Create account'}</h2>
           <form onSubmit={submit} className="space-y-4">
@@ -65,11 +91,6 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
               : <>Already have an account? <Link className="text-primary hover:underline" to="/login">Sign in</Link></>}
           </p>
         </Card>
-        {isLogin && (
-          <p className="mt-4 text-center text-xs text-muted-foreground">
-            Demo: admin@demo.local or prorab@demo.local, password demo1234
-          </p>
-        )}
       </div>
     </div>
   )

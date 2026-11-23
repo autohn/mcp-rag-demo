@@ -20,7 +20,7 @@ func TestSeedPDFs(t *testing.T) {
 		{"Mikhail_Aleksanian_CV.pdf", 1, "Mikhail Aleksanian", []string{"Experience", "Core Skills"}},
 	}
 	for _, c := range cases {
-		path := filepath.Join("..", "seed", "files", c.file)
+		path := filepath.Join("testdata", c.file)
 		res, err := File(path, "pdf")
 		if err != nil {
 			t.Fatalf("%s: %v", c.file, err)

@@ -44,7 +44,7 @@ export interface QuestionRecord {
   created_at: string
 }
 export interface AccessToken { id: number; name: string; created_at: string; last_used_at: string | null; token?: string }
-export interface ServerConfig { llm_enabled: boolean; max_upload_mb: number }
+export interface ServerConfig { llm_enabled: boolean; max_upload_mb: number; demo: boolean }
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -77,6 +77,7 @@ export const api = {
   register: (email: string, password: string, name: string) =>
     request<User>('POST', '/api/auth/register', { email, password, name }),
   logout: () => request<void>('POST', '/api/auth/logout'),
+  demo: () => request<{ user: User; project_id: number }>('POST', '/api/auth/demo'),
 
   projects: () => get<Project[]>('/api/projects'),
   project: (id: number) => get<Project>(`/api/projects/${id}`),

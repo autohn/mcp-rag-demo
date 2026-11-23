@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"mcp-rag-demo/backend/internal/app"
+	"mcp-rag-demo/backend/internal/seed"
 )
 
 const cookieName = "session"
@@ -37,6 +38,7 @@ func Handler(a *app.App, mcp http.Handler) http.Handler {
 	api.HandleFunc("POST /api/auth/register", s.register)
 	api.HandleFunc("POST /api/auth/login", s.login)
 	api.HandleFunc("POST /api/auth/logout", s.logout)
+	api.HandleFunc("POST /api/auth/demo", s.demo)
 	api.Handle("GET /api/me", s.auth(s.me))
 
 	api.Handle("GET /api/projects", s.auth(s.listProjects))
@@ -72,7 +74,7 @@ func Handler(a *app.App, mcp http.Handler) http.Handler {
 	api.Handle("DELETE /api/tokens/{id}", s.auth(s.revokeToken))
 
 	api.HandleFunc("GET /api/config", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, map[string]any{"llm_enabled": a.LLM.Enabled(), "max_upload_mb": a.Cfg.MaxUploadMB})
+		writeJSON(w, http.StatusOK, map[string]any{"llm_enabled": a.LLM.Enabled(), "max_upload_mb": a.Cfg.MaxUploadMB, "demo": a.Cfg.Seed})
 	})
 	api.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
 		writeError(w, &app.Error{Kind: app.KindNotFound, Msg: "no such API method"})
@@ -226,6 +228,21 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	}
 	s.setSession(w, r, tok, int(app.SessionTTL/time.Second))
 	writeJSON(w, http.StatusOK, u)
+}
+
+// demo signs in as the seeded demo user and returns the demo project to open.
+func (s *Server) demo(w http.ResponseWriter, r *http.Request) {
+	if !s.app.Cfg.Seed {
+		writeError(w, &app.Error{Kind: app.KindNotFound, Msg: "the demo project is disabled"})
+		return
+	}
+	u, tok, pid, err := seed.DemoLogin(r.Context(), s.app)
+	if err != nil {
+		writeError(w, &app.Error{Kind: app.KindNotFound, Msg: err.Error()})
+		return
+	}
+	s.setSession(w, r, tok, int(app.SessionTTL/time.Second))
+	writeJSON(w, http.StatusOK, map[string]any{"user": u, "project_id": pid})
 }
 
 func (s *Server) logout(w http.ResponseWriter, r *http.Request) {

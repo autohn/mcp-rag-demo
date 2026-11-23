@@ -22,7 +22,7 @@ $env:OPENAI_API_KEY="sk-..."; docker compose up --build
 
 The first build takes a couple of minutes. It's ready when the log shows `listening addr=:8080`.
 
-**2. Ask the CV** — open http://localhost:8080 and sign in as `prorab@demo.local` / `demo1234`. Open **CV — Mikhail Aleksanian** → **Questions** and ask, for example:
+**2. Ask the CV** — open http://localhost:8080 and click **Open the demo project**. No sign-up: it opens the Questions tab of a demo project holding a sample CV. Ask, for example:
 
 - *What does he do at SIGNAX?*
 - *Has he built RAG systems? Where?*
@@ -30,9 +30,9 @@ The first build takes a couple of minutes. It's ready when the log shows `listen
 
 Every claim in the answer has a numbered citation. Click the document name under a citation: the PDF opens on that page with the quoted passage highlighted. Ask something the CV doesn't cover (*What is his salary expectation?*) and you get "not found" instead of a guess.
 
-**3. Try MCP (optional)** — go to **Access Tokens & MCP**, create a token, and copy the Claude Code / Cursor / Claude Desktop snippet shown there. Then ask your assistant: *"Using sitedocs, summarize Mikhail's AI experience with sources."*
+**3. Try MCP (optional)** — still signed in as the demo user, go to **Access Tokens & MCP**, create a token, and copy the Claude Code / Cursor / Claude Desktop snippet shown there. Then ask your assistant: *"Using sitedocs, summarize Mikhail's AI experience with sources."*
 
-Also seeded: **Residential Building 2**, a construction project with Russian-language explanatory notes and specs, and an Admin account `admin@demo.local` / `demo1234` that can upload, delete and manage members.
+To try uploads and member management, register your own account and create a project — you become its Admin. In the demo project the demo user can ask questions but not change documents.
 
 Stop with `Ctrl+C`; `docker compose down -v` also wipes the data. If port 8080 or 5433 is busy, stop whatever uses it or change the ports in `docker-compose.yml`. Without a key everything except Answers still works (full-text search only); add the key later and restart — existing documents get their embeddings automatically.
 
@@ -49,8 +49,10 @@ Demo accounts:
 
 | User | Password | Role |
 |---|---|---|
-| `admin@demo.local` | `demo1234` | Admin in both demo projects |
-| `prorab@demo.local` | `demo1234` | Participant in both demo projects |
+| `admin@demo.local` | `demo1234` | Admin of the demo project |
+| `prorab@demo.local` | `demo1234` | Participant — the **Open the demo project** button signs in as this user |
+
+Set `SEED=false` to skip the demo data and hide the button.
 
 Development (Go 1.27+, Node 22+):
 
@@ -110,4 +112,4 @@ web/src/
 | Chunk size | [chunk.go](backend/internal/chunk/chunk.go) |
 | MCP tools and descriptions | [mcpserver.go](backend/internal/mcpserver/mcpserver.go) |
 | Database schema | [backend/internal/db/migrations/](backend/internal/db/migrations/) |
-| Demo data | [backend/internal/seed/](backend/internal/seed/) |
+| Demo project and button | [backend/internal/seed/](backend/internal/seed/) |
