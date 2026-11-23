@@ -1,0 +1,10 @@
+/data
+/bin
+/backend/data
+.env
+node_modules
+web/dist
+
+# Design notes used to generate the project
+GLOSSARY.md
+docs/
